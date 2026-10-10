@@ -1,0 +1,94 @@
+<nav class="bg-finance-card border-b border-finance-border sticky top-0 z-40 backdrop-blur px-4 py-3">
+  <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+    
+    <!-- Brand / Logo -->
+    <div class="flex items-center gap-3 cursor-pointer" (click)="portfolioService.selectedSubPortfolioId.set(null)">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-extrabold text-lg text-white tracking-tight">GLOBAL PORTFOLIO</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-mono border border-emerald-500/30">PRO</span>
+        </div>
+        <p class="text-xs text-finance-muted font-medium">Multi-Currency Yahoo Finance Tracker</p>
+      </div>
+    </div>
+
+    <!-- Live Regional Exchange Indicators -->
+    <div class="hidden lg:flex items-center gap-2 bg-finance-bg/80 border border-finance-border px-3 py-1.5 rounded-xl text-xs font-mono">
+      <span class="text-finance-muted uppercase font-semibold mr-1">Markets:</span>
+      @for (m of marketStatuses(); track m.exchange_id) {
+        <div class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-finance-card/80 border border-finance-border/50" [title]="m.name + ' (' + m.timezone + '): ' + (m.is_open ? 'OPEN' : 'CLOSED')">
+          <span class="w-2 h-2 rounded-full" [ngClass]="m.is_open ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'"></span>
+          <span class="text-gray-300 font-medium">{{ m.exchange_id }}</span>
+        </div>
+      }
+    </div>
+
+    <!-- Right Controls: Currency Switcher & Global Actions -->
+    <div class="flex items-center flex-wrap gap-2.5">
+      
+      <!-- Base Currency Selector -->
+      <div class="flex items-center gap-1.5 bg-finance-bg border border-finance-border rounded-xl px-2.5 py-1.5 text-xs">
+        <span class="text-finance-muted">Base:</span>
+        <select 
+          [ngModel]="portfolioService.activeBaseCurrency()" 
+          (ngModelChange)="onCurrencyChange($event)"
+          class="bg-transparent text-white font-bold outline-none cursor-pointer pr-1">
+          @for (c of currencies; track c.code) {
+            <option [value]="c.code" class="bg-finance-card text-white">{{ c.flag }} {{ c.code }} ({{ c.symbol }})</option>
+          }
+        </select>
+      </div>
+
+      <!-- Refresh Now Button -->
+      <button 
+        (click)="onRefreshNow()"
+        [disabled]="isRefreshing()"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-finance-border bg-finance-card hover:bg-finance-cardHover text-xs font-medium text-gray-200 transition active:scale-95 disabled:opacity-50">
+        <svg 
+          class="w-4 h-4 text-cyan-400" 
+          [ngClass]="{ 'animate-spin-fast': isRefreshing() }" 
+          fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span>{{ isRefreshing() ? 'Syncing...' : 'Refresh' }}</span>
+      </button>
+
+      <!-- Ledger Button -->
+      <button 
+        (click)="openLedger.emit()"
+        class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-finance-border bg-finance-card hover:bg-finance-cardHover text-xs font-medium text-gray-200 transition">
+        <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+        <span>Ledger</span>
+      </button>
+
+      <!-- Import Button -->
+      <button 
+        (click)="openImport.emit()"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-finance-card hover:bg-finance-cardHover border border-cyan-500/40 text-cyan-400 text-xs font-semibold shadow transition active:scale-95">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        </svg>
+        <span>Import File</span>
+      </button>
+
+      <!-- New Transaction Button -->
+      <button 
+        (click)="openTransaction.emit()"
+        class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-xs font-semibold shadow-md shadow-emerald-500/20 transition active:scale-95">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>Trade</span>
+      </button>
+
+    </div>
+
+  </div>
+</nav>

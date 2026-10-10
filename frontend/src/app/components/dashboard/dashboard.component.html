@@ -1,0 +1,372 @@
+<div class="space-y-6">
+
+  @if (isLoading()) {
+    <div class="py-24 text-center text-finance-muted text-sm flex flex-col items-center justify-center gap-3">
+      <svg class="w-8 h-8 text-cyan-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+      Calculating multi-currency portfolio valuation using real-time FX rates...
+    </div>
+  } @else {
+    @if (rollup(); as r) {
+
+    <!-- Master Portfolio Top Net Worth Hero Banner -->
+    <div class="bg-gradient-to-r from-finance-card via-finance-cardHover to-finance-card border border-finance-border rounded-2xl p-6 shadow-lg relative overflow-hidden">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 text-xs text-finance-muted font-medium">
+            <span>MASTER PORTFOLIO NET WORTH</span>
+            <span>•</span>
+            <span class="text-cyan-400 font-mono font-bold">{{ r.base_currency }} DISPLAY ROLLUP</span>
+          </div>
+          <div class="text-3xl md:text-4xl font-extrabold text-white font-mono mt-1 tracking-tight">
+            {{ r.base_currency }} {{ r.total_net_worth | number:'1.2-2' }}
+          </div>
+          <div class="flex items-center gap-3 mt-2 text-xs font-mono">
+            <span class="flex items-center gap-1 font-bold"
+              [ngClass]="r.total_daily_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'">
+              <span>{{ r.total_daily_pnl >= 0 ? '▲' : '▼' }}</span>
+              <span>{{ r.total_daily_pnl >= 0 ? '+' : '' }}{{ r.base_currency }} {{ r.total_daily_pnl | number:'1.2-2' }}</span>
+              <span>({{ r.total_daily_pnl_percent | number:'1.2-2' }}% Today)</span>
+            </span>
+            <span class="text-finance-muted">|</span>
+            <span class="flex items-center gap-1 font-bold"
+              [ngClass]="r.total_unrealized_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'">
+              <span>Total Return: {{ r.total_unrealized_pnl >= 0 ? '+' : '' }}{{ r.base_currency }} {{ r.total_unrealized_pnl | number:'1.2-2' }} ({{ r.total_unrealized_pnl_percent | number:'1.2-2' }}%)</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Quick Summary Metrics -->
+        <div class="flex items-center gap-4 text-xs font-mono">
+          <div class="bg-finance-bg/80 border border-finance-border/70 rounded-xl p-3 text-right">
+            <span class="text-[11px] text-finance-muted block">Total Invested</span>
+            <span class="text-sm font-bold text-gray-200">{{ r.base_currency }} {{ r.total_invested | number:'1.2-2' }}</span>
+          </div>
+          <div class="bg-finance-bg/80 border border-cyan-500/30 rounded-xl p-3 text-right">
+            <span class="text-[11px] text-cyan-400 font-bold block">Cash Pool (All Wallets)</span>
+            <span class="text-sm font-bold text-white">{{ r.base_currency }} {{ r.total_cash | number:'1.2-2' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sub-Portfolios Section -->
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-lg font-bold text-white">Regional Sub-Portfolios</h2>
+          <p class="text-xs text-finance-muted">Country-specific equity baskets with isolated cash wallets and benchmark comparison</p>
+        </div>
+        <button 
+          (click)="showNewSubModal.set(true)"
+          class="px-3.5 py-1.5 rounded-xl bg-finance-card hover:bg-finance-cardHover border border-finance-border text-xs font-semibold text-gray-200 transition">
+          + Add Region
+        </button>
+      </div>
+
+      <!-- Grid of Sub-Portfolios Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        @for (sp of r.sub_portfolios; track sp.id) {
+          <div 
+            (click)="selectSubPortfolio.emit(sp.id)"
+            class="bg-finance-card border border-finance-border hover:border-cyan-500/50 hover:bg-finance-cardHover/50 rounded-2xl p-5 shadow-sm transition cursor-pointer group relative flex flex-col justify-between">
+            
+            <div>
+              <!-- Card Header -->
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-2.5">
+                  <span class="text-2xl">{{ getCountryFlag(sp.country) }}</span>
+                  <div>
+                    <h3 class="font-bold text-sm text-white group-hover:text-cyan-400 transition">{{ sp.name }}</h3>
+                    <div class="flex items-center gap-1.5 text-[11px] text-finance-muted font-mono mt-0.5">
+                      <span>{{ sp.local_currency }}</span>
+                      <span>•</span>
+                      <span>Benchmark: {{ sp.benchmark_ticker }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5 opacity-80 group-hover:opacity-100">
+                  <button 
+                    (click)="openEditSub(sp, $event)"
+                    class="p-1.5 rounded-lg bg-finance-bg hover:bg-finance-cardHover text-gray-400 hover:text-cyan-400 border border-finance-border transition"
+                    title="Edit Sub-Portfolio">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                  <button 
+                    (click)="openDeleteSub(sp, $event)"
+                    class="p-1.5 rounded-lg bg-finance-bg hover:bg-rose-500/10 text-gray-400 hover:text-rose-400 border border-finance-border hover:border-rose-500/30 transition"
+                    title="Delete Sub-Portfolio">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                  <span class="text-xs text-finance-muted group-hover:text-cyan-400 transition ml-1">→</span>
+                </div>
+              </div>
+
+              <!-- Valuation in Local Currency -->
+              <div class="mt-4 pt-3 border-t border-finance-border/50">
+                <span class="text-[11px] text-finance-muted">Local Valuation</span>
+                <div class="text-xl font-extrabold text-white font-mono mt-0.5">
+                  {{ sp.local_currency }} {{ sp.local_total_value | number:'1.2-2' }}
+                </div>
+                
+                <!-- Rollup Converted Value -->
+                <div class="text-[11px] text-finance-muted font-mono mt-0.5">
+                  Converted: <span class="text-gray-300 font-semibold">{{ r.base_currency }} {{ sp.converted_total_value | number:'1.2-2' }}</span>
+                  <span class="text-[10px] text-gray-500"> (1 {{ sp.local_currency }} = {{ sp.base_fx_rate | number:'1.4-4' }} {{ r.base_currency }})</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer Details: Cash & Return -->
+            <div class="mt-4 pt-3 border-t border-finance-border/50 flex items-center justify-between text-xs font-mono">
+              <div>
+                <span class="text-[10px] text-finance-muted block">Cash Wallet</span>
+                <span class="text-gray-200 font-bold">{{ sp.local_currency }} {{ sp.local_cash_balance | number:'1.2-2' }}</span>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] text-finance-muted block">Unrealized P&L</span>
+                <span class="font-bold" [ngClass]="sp.local_unrealized_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'">
+                  {{ sp.local_unrealized_pnl >= 0 ? '+' : '' }}{{ sp.local_currency }} {{ sp.local_unrealized_pnl | number:'1.2-2' }}
+                </span>
+              </div>
+            </div>
+
+          </div>
+        }
+
+        <!-- Add New Sub-Portfolio Card -->
+        <div 
+          (click)="showNewSubModal.set(true)"
+          class="border-2 border-dashed border-finance-border hover:border-cyan-500/50 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition text-finance-muted hover:text-white bg-finance-card/30 min-h-[180px]">
+          <div class="w-10 h-10 rounded-full bg-finance-border flex items-center justify-center text-cyan-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </div>
+          <span class="text-xs font-semibold">Add Regional Sub-Portfolio</span>
+          <span class="text-[11px] text-finance-muted text-center">Track Europe (EUR), UK (GBP), Canada (CAD), or custom country</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Master Asset Allocation Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+      <div class="bg-finance-card border border-finance-border rounded-2xl p-5 shadow-sm">
+        <h3 class="text-sm font-bold text-white mb-1">Global Holdings Distribution ({{ r.base_currency }})</h3>
+        <p class="text-xs text-finance-muted mb-4">Stock weight distribution consolidated across all sub-portfolios</p>
+        <app-allocation-chart [items]="allocations()?.by_company || []"></app-allocation-chart>
+      </div>
+
+      <div class="bg-finance-card border border-finance-border rounded-2xl p-5 shadow-sm">
+        <h3 class="text-sm font-bold text-white mb-1">Sector Diversification ({{ r.base_currency }})</h3>
+        <p class="text-xs text-finance-muted mb-4">Industry exposure consolidated across all sub-portfolios</p>
+        <app-allocation-chart [items]="allocations()?.by_sector || []"></app-allocation-chart>
+      </div>
+    </div>
+    }
+  }
+
+  <!-- Add Sub-Portfolio Modal -->
+  @if (showNewSubModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div class="bg-finance-card border border-finance-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-finance-border pb-3">
+          <h3 class="text-base font-bold text-white">Create Regional Sub-Portfolio</h3>
+          <button (click)="showNewSubModal.set(false)" class="text-gray-400 hover:text-white">✕</button>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="font-semibold text-gray-300 block mb-1">Sub-Portfolio Name</label>
+            <input 
+              type="text" 
+              [(ngModel)]="newSubName" 
+              placeholder="e.g. Europe Tech & Luxury" 
+              class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white outline-none focus:border-cyan-500" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="font-semibold text-gray-300 block mb-1">Country</label>
+              <select 
+                [(ngModel)]="newSubCountry" 
+                class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white outline-none">
+                <option value="EU">🇪🇺 Europe</option>
+                <option value="GB">🇬🇧 United Kingdom</option>
+                <option value="CA">🇨🇦 Canada</option>
+                <option value="HK">🇭🇰 Hong Kong</option>
+                <option value="US">🇺🇸 United States</option>
+                <option value="IN">🇮🇳 India</option>
+                <option value="JP">🇯🇵 Japan</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="font-semibold text-gray-300 block mb-1">Local Currency</label>
+              <input 
+                type="text" 
+                [(ngModel)]="newSubCurrency" 
+                class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white font-mono uppercase" />
+            </div>
+          </div>
+
+          <div>
+            <label class="font-semibold text-gray-300 block mb-1">Benchmark Index Ticker</label>
+            <input 
+              type="text" 
+              [(ngModel)]="newSubBenchmark" 
+              placeholder="e.g. ^STOXX50E, ^FTSE, ^GSPC, ^NSEI" 
+              class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white font-mono uppercase" />
+          </div>
+
+          <div>
+            <label class="font-semibold text-gray-300 block mb-1">Initial Cash Wallet Pool</label>
+            <input 
+              type="number" 
+              [(ngModel)]="newSubCash" 
+              class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white font-mono" />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-finance-border">
+          <button (click)="showNewSubModal.set(false)" class="px-4 py-2 rounded-xl bg-finance-bg hover:bg-finance-border text-xs text-gray-300">
+            Cancel
+          </button>
+          <button (click)="createSubPortfolio()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white">
+            Create Sub-Portfolio
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Edit Sub-Portfolio Modal -->
+  @if (showEditSubModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div class="bg-finance-card border border-finance-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-finance-border pb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">⚙️</span>
+            <div>
+              <h3 class="text-base font-bold text-white">Edit Sub-Portfolio</h3>
+              <p class="text-[11px] text-finance-muted">Update configuration and regional benchmark</p>
+            </div>
+          </div>
+          <button (click)="showEditSubModal.set(false)" class="text-gray-400 hover:text-white transition">✕</button>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="font-semibold text-gray-300 block mb-1">Sub-Portfolio Name</label>
+            <input 
+              type="text" 
+              [(ngModel)]="editSubName" 
+              placeholder="e.g. US Tech Growth" 
+              class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white outline-none focus:border-cyan-500 transition" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="font-semibold text-gray-300 block mb-1">Country</label>
+              <select 
+                [(ngModel)]="editSubCountry" 
+                class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white outline-none">
+                <option value="US">🇺🇸 United States</option>
+                <option value="IN">🇮🇳 India</option>
+                <option value="JP">🇯🇵 Japan</option>
+                <option value="EU">🇪🇺 Europe</option>
+                <option value="GB">🇬🇧 United Kingdom</option>
+                <option value="CA">🇨🇦 Canada</option>
+                <option value="HK">🇭🇰 Hong Kong</option>
+                <option value="AU">🇦🇺 Australia</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="font-semibold text-gray-300 block mb-1">Local Currency</label>
+              <input 
+                type="text" 
+                [(ngModel)]="editSubCurrency" 
+                class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white font-mono uppercase outline-none focus:border-cyan-500 transition" />
+            </div>
+          </div>
+
+          <div>
+            <label class="font-semibold text-gray-300 block mb-1">Benchmark Index Ticker</label>
+            <input 
+              type="text" 
+              [(ngModel)]="editSubBenchmark" 
+              placeholder="e.g. ^GSPC, ^NSEI, ^N225, ^STOXX50E" 
+              class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white font-mono uppercase outline-none focus:border-cyan-500 transition" />
+            <p class="text-[11px] text-finance-muted mt-1">Used for relative performance charts and alpha comparisons.</p>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-finance-border">
+          <button 
+            (click)="showEditSubModal.set(false)" 
+            class="px-4 py-2 rounded-xl bg-finance-bg hover:bg-finance-border text-xs text-gray-300 transition">
+            Cancel
+          </button>
+          <button 
+            (click)="saveSubPortfolio()" 
+            [disabled]="isSavingSub()"
+            class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition disabled:opacity-50">
+            {{ isSavingSub() ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Delete Sub-Portfolio Confirmation Modal -->
+  @if (showDeleteSubModal() && subToDelete) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div class="bg-finance-card border border-rose-500/40 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+        <div class="flex items-center gap-3 text-rose-400 border-b border-finance-border pb-3">
+          <div class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-xl">
+            ⚠️
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Delete Sub-Portfolio?</h3>
+            <p class="text-[11px] text-rose-400">Irreversible action</p>
+          </div>
+        </div>
+
+        <div class="space-y-3 text-xs text-gray-300">
+          <p>
+            Are you sure you want to permanently delete <strong class="text-white">{{ subToDelete.name }}</strong> ({{ subToDelete.local_currency }})?
+          </p>
+          <div class="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-300 text-[11px] space-y-1.5">
+            <p class="font-semibold text-rose-200">This will permanently delete:</p>
+            <ul class="list-disc pl-4 space-y-1">
+              <li>All active stock holdings and cost baselines in this region</li>
+              <li>Regional cash pool balance (<strong>{{ subToDelete.local_currency }} {{ subToDelete.local_cash_balance | number:'1.2-2' }}</strong>)</li>
+              <li>All historical transaction ledger records for this sub-portfolio</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-finance-border">
+          <button 
+            (click)="showDeleteSubModal.set(false)" 
+            class="px-4 py-2 rounded-xl bg-finance-bg hover:bg-finance-border text-xs text-gray-300 transition">
+            Cancel
+          </button>
+          <button 
+            (click)="confirmDeleteSub()" 
+            [disabled]="isDeletingSub()"
+            class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white shadow-md shadow-rose-600/30 transition disabled:opacity-50">
+            {{ isDeletingSub() ? 'Deleting...' : 'Yes, Delete Sub-Portfolio' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

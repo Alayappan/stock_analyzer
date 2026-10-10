@@ -1,0 +1,107 @@
+<div class="min-h-screen bg-finance-bg flex flex-col font-sans selection:bg-cyan-500 selection:text-white">
+
+  <!-- Top Global Navigation Bar -->
+  <app-navbar
+    (openImport)="showImportModal.set(true)"
+    (openTransaction)="openTradeModal()"
+    (openLedger)="showLedgerModal.set(true)">
+  </app-navbar>
+
+  <!-- Main View Area -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8">
+    @if (portfolioService.selectedSubPortfolioId() === null) {
+      <!-- Master Dashboard Rollup View -->
+      <app-dashboard
+        (selectSubPortfolio)="portfolioService.selectedSubPortfolioId.set($event)"
+        (openImport)="showImportModal.set(true)"
+        (openTrade)="openTradeModal()">
+      </app-dashboard>
+    } @else {
+      <!-- Deep-Dive Sub-Portfolio View -->
+      <app-sub-portfolio
+        [subPortfolioId]="portfolioService.selectedSubPortfolioId()!"
+        (back)="portfolioService.selectedSubPortfolioId.set(null)"
+        (openTrade)="openTradeModal($event)"
+        (viewStockDetail)="openStockDetail($event)">
+      </app-sub-portfolio>
+    }
+  </main>
+
+  <!-- Global Footer -->
+  <footer class="border-t border-finance-border py-4 px-4 bg-finance-card/40 text-center text-xs text-finance-muted font-mono">
+    <div class="max-w-7xl mx-auto flex items-center justify-center">
+      <span>Yahoo Finance Live Sync Engine</span>
+    </div>
+  </footer>
+
+  <!-- MODALS -->
+
+  <!-- Yahoo Finance File Import Modal -->
+  @if (showImportModal()) {
+    <app-import-modal
+      [subPortfolios]="subPortfolios()"
+      (close)="showImportModal.set(false)"
+      (importSuccess)="loadSubPortfolios()">
+    </app-import-modal>
+  }
+
+  <!-- Transaction Execution Modal with Cash Wallet Validation -->
+  @if (showTransactionModal()) {
+    <app-transaction-modal
+      [subPortfolios]="subPortfolios()"
+      [initialSubPortfolioId]="tradeInitialSubId"
+      [initialTicker]="tradeInitialTicker"
+      [initialType]="tradeInitialType"
+      (close)="showTransactionModal.set(false)"
+      (transactionSuccess)="loadSubPortfolios()">
+    </app-transaction-modal>
+  }
+
+  <!-- Stock Statistics & Live News Sentiment Modal -->
+  @if (detailTicker(); as t) {
+    <app-stock-detail-modal
+      [ticker]="t"
+      (close)="detailTicker.set(null)"
+      (trade)="onTradeFromDetail($event)">
+    </app-stock-detail-modal>
+  }
+
+  <!-- Audit Ledger History Modal -->
+  @if (showLedgerModal()) {
+    <app-transaction-history
+      (close)="showLedgerModal.set(false)">
+    </app-transaction-history>
+  }
+
+  <!-- Floating Toast Notifications Overlay -->
+  <div class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full">
+    @for (toast of toastService.toasts(); track toast.id) {
+      <div 
+        class="pointer-events-auto p-4 rounded-2xl shadow-2xl border text-xs flex items-start gap-3 backdrop-blur-md transition-all duration-300 animate-slide-up"
+        [ngClass]="{
+          'bg-emerald-950/90 border-emerald-500/40 text-emerald-200': toast.type === 'success',
+          'bg-rose-950/90 border-rose-500/40 text-rose-200': toast.type === 'error',
+          'bg-cyan-950/90 border-cyan-500/40 text-cyan-200': toast.type === 'info',
+          'bg-amber-950/90 border-amber-500/40 text-amber-200': toast.type === 'warning'
+        }">
+        <div class="mt-0.5 shrink-0">
+          @if (toast.type === 'success') {
+            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+          } @else if (toast.type === 'error') {
+            <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          } @else {
+            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          }
+        </div>
+        <div class="flex-1">
+          @if (toast.title) {
+            <div class="font-bold text-white mb-0.5">{{ toast.title }}</div>
+          }
+          <div>{{ toast.message }}</div>
+        </div>
+        <button (click)="toastService.dismiss(toast.id)" class="text-gray-400 hover:text-white p-1">✕</button>
+      </div>
+    }
+  </div>
+
+</div>

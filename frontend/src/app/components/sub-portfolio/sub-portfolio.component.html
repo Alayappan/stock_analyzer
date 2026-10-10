@@ -1,0 +1,537 @@
+<div class="space-y-6">
+  
+  @if (isLoading()) {
+    <div class="py-24 text-center text-finance-muted text-sm flex flex-col items-center justify-center gap-3">
+      <svg class="w-8 h-8 text-cyan-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+      Loading sub-portfolio metrics and real-time market valuations...
+    </div>
+  } @else {
+    @if (detail(); as d) {
+
+    <!-- Sub-Portfolio Header Breadcrumb & Actions -->
+    <div class="flex flex-wrap items-center justify-between gap-4 bg-finance-card border border-finance-border rounded-2xl p-5 shadow-sm">
+      <div class="flex items-center gap-3">
+        <button 
+          (click)="back.emit()"
+          class="p-2 rounded-xl bg-finance-bg border border-finance-border hover:bg-finance-cardHover text-gray-400 hover:text-white transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+        </button>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xl font-extrabold text-white">{{ d.name }}</span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+              {{ d.currency }}
+            </span>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-mono bg-finance-bg text-finance-muted border border-finance-border">
+              Benchmark: <strong class="text-white">{{ d.benchmark_ticker }}</strong>
+            </span>
+          </div>
+          <p class="text-xs text-finance-muted mt-0.5">Regional Sub-Portfolio Ledger • Local Settlement in {{ d.currency }}</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button 
+          (click)="openEditSubPortfolio()"
+          class="px-3 py-1.5 rounded-xl bg-finance-bg hover:bg-finance-cardHover border border-finance-border text-gray-300 hover:text-white transition flex items-center gap-1.5 text-xs font-semibold"
+          title="Edit Sub-Portfolio Details">
+          <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+          Edit
+        </button>
+        <button 
+          (click)="openDeleteModal()"
+          class="px-3 py-1.5 rounded-xl bg-finance-bg hover:bg-rose-500/10 border border-finance-border hover:border-rose-500/30 text-gray-400 hover:text-rose-400 transition flex items-center gap-1.5 text-xs font-semibold"
+          title="Delete Sub-Portfolio">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          Delete
+        </button>
+        <button 
+          (click)="quickDeposit()"
+          class="px-3.5 py-1.5 rounded-xl bg-finance-bg hover:bg-finance-cardHover border border-finance-border text-xs font-semibold text-gray-200 transition">
+          Deposit Cash
+        </button>
+        <button 
+          (click)="openTrade.emit({ type: 'BUY' })"
+          class="px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-xs font-bold shadow-md shadow-emerald-500/20 transition">
+          + Add Position
+        </button>
+      </div>
+    </div>
+
+    <!-- Key Metrics & Cash Wallet Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- Total Sub-Portfolio Value Card -->
+      <div class="bg-finance-card border border-finance-border rounded-2xl p-4 shadow-sm relative overflow-hidden">
+        <span class="text-xs text-finance-muted font-medium">Total Portfolio Valuation</span>
+        <div class="text-2xl font-extrabold text-white font-mono mt-1">
+          {{ d.currency }} {{ d.total_portfolio_value | number:'1.2-2' }}
+        </div>
+        <div class="flex items-center gap-1.5 mt-2 text-xs font-mono">
+          <span class="text-finance-muted">Invested:</span>
+          <span class="text-gray-300 font-semibold">{{ d.currency }} {{ d.total_invested_value | number:'1.2-2' }}</span>
+        </div>
+        <div class="absolute right-3 top-3 w-8 h-8 rounded-full bg-finance-bg flex items-center justify-center text-gray-500">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Unrealized Gain / Loss Card -->
+      <div class="bg-finance-card border border-finance-border rounded-2xl p-4 shadow-sm">
+        <span class="text-xs text-finance-muted font-medium">Total Unrealized Return</span>
+        <div class="text-2xl font-extrabold font-mono mt-1"
+          [ngClass]="d.total_unrealized_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'">
+          {{ d.total_unrealized_pnl >= 0 ? '+' : '' }}{{ d.currency }} {{ d.total_unrealized_pnl | number:'1.2-2' }}
+        </div>
+        <div class="flex items-center gap-1 mt-2 text-xs font-mono font-semibold"
+          [ngClass]="d.total_unrealized_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'">
+          <span>{{ d.total_unrealized_pnl >= 0 ? '▲' : '▼' }}</span>
+          <span>{{ d.total_unrealized_pnl >= 0 ? '+' : '' }}{{ d.total_unrealized_pnl_percent | number:'1.2-2' }}% Total Return</span>
+        </div>
+      </div>
+
+      <!-- Day's P&L Card -->
+      <div class="bg-finance-card border border-finance-border rounded-2xl p-4 shadow-sm">
+        <span class="text-xs text-finance-muted font-medium">Day's Gain / Loss</span>
+        <div class="text-2xl font-extrabold font-mono mt-1"
+          [ngClass]="d.total_daily_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'">
+          {{ d.total_daily_pnl >= 0 ? '+' : '' }}{{ d.currency }} {{ d.total_daily_pnl | number:'1.2-2' }}
+        </div>
+        <div class="flex items-center gap-1 mt-2 text-xs font-mono font-semibold"
+          [ngClass]="d.total_daily_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'">
+          <span>{{ d.total_daily_pnl >= 0 ? '▲' : '▼' }}</span>
+          <span>{{ d.total_daily_pnl >= 0 ? '+' : '' }}{{ d.total_daily_pnl_percent | number:'1.2-2' }}% Today</span>
+        </div>
+      </div>
+
+      <!-- Regional Cash Pool Wallet Card -->
+      <div class="bg-gradient-to-br from-finance-card to-finance-cardHover border border-cyan-500/30 rounded-2xl p-4 shadow-sm relative">
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-cyan-400 font-semibold uppercase tracking-wider">Available Cash Pool</span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-mono">
+            {{ ((d.cash_balance / (d.total_portfolio_value || 1)) * 100) | number:'1.1-1' }}% of Sub
+          </span>
+        </div>
+        <div class="text-2xl font-extrabold text-white font-mono mt-1">
+          {{ d.currency }} {{ d.cash_balance | number:'1.2-2' }}
+        </div>
+        <div class="flex items-center gap-2 mt-2">
+          <button 
+            (click)="quickDeposit()"
+            class="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold transition">
+            + Deposit
+          </button>
+          <button 
+            (click)="quickWithdraw()"
+            class="text-[11px] px-2.5 py-1 rounded-lg bg-finance-bg hover:bg-finance-border text-gray-300 border border-finance-border font-semibold transition">
+            Withdraw
+          </button>
+          <button 
+            (click)="openEditCashPool()"
+            class="text-[11px] px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 font-semibold transition flex items-center gap-1"
+            title="Directly edit cash pool balance">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            Edit Cash
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center border-b border-finance-border gap-6 text-xs font-semibold">
+      <button 
+        (click)="activeTab.set('holdings')"
+        [class.border-emerald-400]="activeTab() === 'holdings'"
+        [class.text-emerald-400]="activeTab() === 'holdings'"
+        [class.border-transparent]="activeTab() !== 'holdings'"
+        [class.text-finance-muted]="activeTab() !== 'holdings'"
+        class="pb-3 border-b-2 transition hover:text-white flex items-center gap-1.5">
+        <span>Portfolio Holdings</span>
+        <span class="px-1.5 py-0.2 rounded-full bg-finance-border text-[10px]">{{ d.holdings.length }}</span>
+      </button>
+
+      <button 
+        (click)="activeTab.set('performance')"
+        [class.border-emerald-400]="activeTab() === 'performance'"
+        [class.text-emerald-400]="activeTab() === 'performance'"
+        [class.border-transparent]="activeTab() !== 'performance'"
+        [class.text-finance-muted]="activeTab() !== 'performance'"
+        class="pb-3 border-b-2 transition hover:text-white">
+        Benchmark Comparison ({{ d.benchmark_ticker }})
+      </button>
+
+      <button 
+        (click)="activeTab.set('allocations')"
+        [class.border-emerald-400]="activeTab() === 'allocations'"
+        [class.text-emerald-400]="activeTab() === 'allocations'"
+        [class.border-transparent]="activeTab() !== 'allocations'"
+        [class.text-finance-muted]="activeTab() !== 'allocations'"
+        class="pb-3 border-b-2 transition hover:text-white">
+        Asset & Sector Allocations
+      </button>
+
+      <button 
+        (click)="activeTab.set('dividends')"
+        [class.border-emerald-400]="activeTab() === 'dividends'"
+        [class.text-emerald-400]="activeTab() === 'dividends'"
+        [class.border-transparent]="activeTab() !== 'dividends'"
+        [class.text-finance-muted]="activeTab() !== 'dividends'"
+        class="pb-3 border-b-2 transition hover:text-white flex items-center gap-1.5">
+        <span>Dividends & Actions</span>
+        @if (dividends().length > 0) {
+          <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+        }
+      </button>
+    </div>
+
+    <!-- TAB 1: Holdings Table -->
+    @if (activeTab() === 'holdings') {
+      <div class="bg-finance-card border border-finance-border rounded-2xl overflow-hidden shadow-sm">
+        @if (d.holdings && d.holdings.length > 0) {
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="text-finance-muted uppercase bg-finance-bg/60 border-b border-finance-border font-mono text-[11px]">
+                <tr>
+                  <th class="py-3 px-4">Ticker / Name</th>
+                  <th class="py-3 px-3">Sector</th>
+                  <th class="py-3 px-3 text-right">Shares</th>
+                  <th class="py-3 px-3 text-right">Avg Cost</th>
+                  <th class="py-3 px-3 text-right">Current Price</th>
+                  <th class="py-3 px-3 text-right">Day's Change</th>
+                  <th class="py-3 px-3 text-right">Market Value</th>
+                  <th class="py-3 px-3 text-right">Unrealized P&L</th>
+                  <th class="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-finance-border/50 text-gray-200">
+                @for (h of d.holdings; track h.ticker) {
+                  <tr class="hover:bg-finance-cardHover/50 transition group">
+                    <td class="py-3.5 px-4">
+                      <div class="cursor-pointer" (click)="viewStockDetail.emit(h.ticker)">
+                        <span class="font-extrabold text-sm text-white font-mono hover:text-cyan-400 transition">{{ h.ticker }}</span>
+                        <div class="text-[11px] text-finance-muted truncate max-w-xs">{{ h.name }}</div>
+                      </div>
+                    </td>
+                    <td class="py-3.5 px-3">
+                      <span class="px-2 py-0.5 rounded-md bg-finance-bg border border-finance-border text-[11px] text-gray-300">
+                        {{ h.sector }}
+                      </span>
+                    </td>
+                    <td class="py-3.5 px-3 text-right font-mono font-medium text-gray-100">
+                      {{ h.shares | number:'1.2-4' }}
+                    </td>
+                    <td class="py-3.5 px-3 text-right font-mono text-gray-300">
+                      {{ h.currency }} {{ h.cost_basis | number:'1.2-2' }}
+                    </td>
+                    <td class="py-3.5 px-3 text-right font-mono font-bold text-white">
+                      {{ h.currency }} {{ h.current_price | number:'1.2-2' }}
+                    </td>
+                    <td class="py-3.5 px-3 text-right font-mono font-semibold"
+                      [ngClass]="h.daily_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'">
+                      <div>{{ h.daily_pnl >= 0 ? '+' : '' }}{{ h.daily_pnl | number:'1.2-2' }}</div>
+                      <div class="text-[10px]">{{ h.daily_pnl >= 0 ? '+' : '' }}{{ h.daily_pnl_percent | number:'1.2-2' }}%</div>
+                    </td>
+                    <td class="py-3.5 px-3 text-right font-mono font-extrabold text-white">
+                      {{ h.currency }} {{ h.current_value | number:'1.2-2' }}
+                    </td>
+                    <td class="py-3.5 px-3 text-right font-mono font-bold"
+                      [ngClass]="h.unrealized_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'">
+                      <div>{{ h.unrealized_pnl >= 0 ? '+' : '' }}{{ h.unrealized_pnl | number:'1.2-2' }}</div>
+                      <div class="text-[10px]">{{ h.unrealized_pnl >= 0 ? '+' : '' }}{{ h.unrealized_pnl_percent | number:'1.2-2' }}%</div>
+                    </td>
+                    <td class="py-3.5 px-4 text-right">
+                      <div class="flex items-center justify-end gap-1.5 opacity-90 group-hover:opacity-100">
+                        <button 
+                          (click)="tradeHolding(h.ticker, 'BUY')"
+                          class="px-2 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-semibold text-[11px] transition">
+                          Buy
+                        </button>
+                        <button 
+                          (click)="tradeHolding(h.ticker, 'SELL')"
+                          class="px-2 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold text-[11px] transition">
+                          Sell
+                        </button>
+                        <button 
+                          (click)="viewStockDetail.emit(h.ticker)"
+                          class="px-2 py-1 rounded bg-finance-bg hover:bg-finance-border text-cyan-400 font-semibold text-[11px] transition" title="News & Stats">
+                          Stats
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="py-16 text-center text-xs text-finance-muted">
+            <p>No active stock positions in this sub-portfolio yet.</p>
+            <button 
+              (click)="openTrade.emit({ type: 'BUY' })"
+              class="mt-3 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition">
+              + Buy First Stock
+            </button>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- TAB 2: Performance Growth vs Benchmark Index -->
+    @if (activeTab() === 'performance') {
+      <div class="bg-finance-card border border-finance-border rounded-2xl p-5 shadow-sm space-y-4">
+        <div>
+          <h3 class="text-base font-bold text-white">Historical Performance vs Regional Benchmark</h3>
+          <p class="text-xs text-finance-muted">Side-by-side growth progression normalized from inception (% return) against {{ d.benchmark_ticker }}</p>
+        </div>
+
+        <app-benchmark-chart 
+          [growthData]="benchmarkGrowth()" 
+          [currentPeriod]="benchmarkPeriod()"
+          (periodChange)="loadBenchmarkGrowth($event)">
+        </app-benchmark-chart>
+      </div>
+    }
+
+    <!-- TAB 3: Allocation Charts -->
+    @if (activeTab() === 'allocations') {
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="bg-finance-card border border-finance-border rounded-2xl p-5 shadow-sm">
+          <h3 class="text-sm font-bold text-white mb-1">Company Weight Allocations</h3>
+          <p class="text-xs text-finance-muted mb-4">Stock equity distribution across portfolio</p>
+          <app-allocation-chart [items]="allocations()?.by_company || []"></app-allocation-chart>
+        </div>
+
+        <div class="bg-finance-card border border-finance-border rounded-2xl p-5 shadow-sm">
+          <h3 class="text-sm font-bold text-white mb-1">Sector Diversification</h3>
+          <p class="text-xs text-finance-muted mb-4">Industry exposure breakdown</p>
+          <app-allocation-chart [items]="allocations()?.by_sector || []"></app-allocation-chart>
+        </div>
+      </div>
+    }
+
+    <!-- TAB 4: Dividends & Corporate Actions -->
+    @if (activeTab() === 'dividends') {
+      <app-dividends-schedule [dividends]="dividends()" [currency]="d.currency"></app-dividends-schedule>
+    }
+
+    <!-- Modal 1: Edit Cash Pool Balance -->
+    @if (showEditCashModal()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+        <div class="bg-finance-card border border-finance-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+          <div class="flex items-center justify-between border-b border-finance-border pb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold text-base">
+                💰
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white">Edit Regional Cash Pool</h3>
+                <p class="text-[11px] text-finance-muted">Directly adjust cash balance with automatic audit logging</p>
+              </div>
+            </div>
+            <button (click)="showEditCashModal.set(false)" class="text-gray-400 hover:text-white transition">✕</button>
+          </div>
+
+          <div class="space-y-4 text-xs">
+            <!-- Current Balance Info -->
+            <div class="p-3 bg-finance-bg rounded-xl border border-finance-border flex justify-between items-center font-mono">
+              <span class="text-finance-muted">Current Balance:</span>
+              <span class="text-sm font-bold text-gray-200">{{ d.currency }} {{ d.cash_balance | number:'1.2-2' }}</span>
+            </div>
+
+            <div>
+              <label class="font-semibold text-gray-300 block mb-1">New Cash Balance ({{ d.currency }})</label>
+              <input 
+                type="number" 
+                [(ngModel)]="newCashPoolBalance" 
+                min="0"
+                step="any"
+                placeholder="0.00" 
+                class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white font-mono text-base outline-none focus:border-cyan-500 transition" />
+            </div>
+
+            <!-- Difference preview -->
+            <div class="p-3 rounded-xl border text-xs font-mono"
+              [ngClass]="(newCashPoolBalance - d.cash_balance) > 0 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : (newCashPoolBalance - d.cash_balance) < 0 ? 'bg-rose-500/10 border-rose-500/30 text-rose-300' : 'bg-finance-bg border-finance-border text-gray-400'">
+              <div class="flex justify-between items-center">
+                <span>Adjustment Impact:</span>
+                <span class="font-bold">
+                  {{ (newCashPoolBalance - d.cash_balance) >= 0 ? '+' : '' }}{{ (newCashPoolBalance - d.cash_balance) | number:'1.2-2' }} {{ d.currency }}
+                </span>
+              </div>
+              <div class="text-[11px] mt-1 opacity-85">
+                @if ((newCashPoolBalance - d.cash_balance) > 0) {
+                  <span>✓ Automatically logs CASH_DEPOSIT in ledger to balance books.</span>
+                } @else if ((newCashPoolBalance - d.cash_balance) < 0) {
+                  <span>✓ Automatically logs CASH_WITHDRAWAL in ledger to balance books.</span>
+                } @else {
+                  <span>No balance change.</span>
+                }
+              </div>
+            </div>
+
+            <div>
+              <label class="font-semibold text-gray-300 block mb-1">Audit Note / Memo (Optional)</label>
+              <input 
+                type="text" 
+                [(ngModel)]="cashPoolEditNotes" 
+                placeholder="e.g. Bank statement reconciliation, initial funding correction" 
+                class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white outline-none focus:border-cyan-500 transition" />
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-3 border-t border-finance-border">
+            <button 
+              (click)="showEditCashModal.set(false)" 
+              class="px-4 py-2 rounded-xl bg-finance-bg hover:bg-finance-border text-xs text-gray-300 transition">
+              Cancel
+            </button>
+            <button 
+              (click)="saveCashPool()" 
+              [disabled]="isSavingCashPool()"
+              class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-xs font-bold text-white shadow-md shadow-cyan-500/20 transition disabled:opacity-50">
+              {{ isSavingCashPool() ? 'Saving...' : 'Update Cash Balance' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Modal 2: Edit Sub-Portfolio -->
+    @if (showEditSubModal()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+        <div class="bg-finance-card border border-finance-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+          <div class="flex items-center justify-between border-b border-finance-border pb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">⚙️</span>
+              <div>
+                <h3 class="text-base font-bold text-white">Edit Sub-Portfolio</h3>
+                <p class="text-[11px] text-finance-muted">Update configuration and regional benchmark</p>
+              </div>
+            </div>
+            <button (click)="showEditSubModal.set(false)" class="text-gray-400 hover:text-white transition">✕</button>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="font-semibold text-gray-300 block mb-1">Sub-Portfolio Name</label>
+              <input 
+                type="text" 
+                [(ngModel)]="editSubName" 
+                placeholder="e.g. US Tech Growth" 
+                class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white outline-none focus:border-cyan-500 transition" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="font-semibold text-gray-300 block mb-1">Country</label>
+                <select 
+                  [(ngModel)]="editSubCountry" 
+                  class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white outline-none">
+                  <option value="US">🇺🇸 United States</option>
+                  <option value="IN">🇮🇳 India</option>
+                  <option value="JP">🇯🇵 Japan</option>
+                  <option value="EU">🇪🇺 Europe</option>
+                  <option value="GB">🇬🇧 United Kingdom</option>
+                  <option value="CA">🇨🇦 Canada</option>
+                  <option value="HK">🇭🇰 Hong Kong</option>
+                  <option value="AU">🇦🇺 Australia</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="font-semibold text-gray-300 block mb-1">Local Currency</label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="editSubCurrency" 
+                  class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white font-mono uppercase outline-none focus:border-cyan-500 transition" />
+              </div>
+            </div>
+
+            <div>
+              <label class="font-semibold text-gray-300 block mb-1">Benchmark Index Ticker</label>
+              <input 
+                type="text" 
+                [(ngModel)]="editSubBenchmark" 
+                placeholder="e.g. ^GSPC, ^NSEI, ^N225, ^STOXX50E" 
+                class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-white font-mono uppercase outline-none focus:border-cyan-500 transition" />
+              <p class="text-[11px] text-finance-muted mt-1">Used for relative performance charts and alpha comparisons.</p>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-3 border-t border-finance-border">
+            <button 
+              (click)="showEditSubModal.set(false)" 
+              class="px-4 py-2 rounded-xl bg-finance-bg hover:bg-finance-border text-xs text-gray-300 transition">
+              Cancel
+            </button>
+            <button 
+              (click)="saveSubPortfolio()" 
+              [disabled]="isSavingSub()"
+              class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition disabled:opacity-50">
+              {{ isSavingSub() ? 'Saving...' : 'Save Changes' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Modal 3: Delete Sub-Portfolio Confirmation -->
+    @if (showDeleteConfirmModal()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+        <div class="bg-finance-card border border-rose-500/40 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+          <div class="flex items-center gap-3 text-rose-400 border-b border-finance-border pb-3">
+            <div class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-xl">
+              ⚠️
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white">Delete Sub-Portfolio?</h3>
+              <p class="text-[11px] text-rose-400">Irreversible action</p>
+            </div>
+          </div>
+
+          <div class="space-y-3 text-xs text-gray-300">
+            <p>
+              Are you sure you want to permanently delete <strong class="text-white">{{ d.name }}</strong> ({{ d.currency }})?
+            </p>
+            <div class="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-300 text-[11px] space-y-1.5">
+              <p class="font-semibold text-rose-200">This will permanently delete:</p>
+              <ul class="list-disc pl-4 space-y-1">
+                <li>All <strong>{{ d.holdings.length }}</strong> active stock holdings and cost baselines</li>
+                <li>Regional cash pool balance (<strong>{{ d.currency }} {{ d.cash_balance | number:'1.2-2' }}</strong>)</li>
+                <li>All historical transaction ledger records for this sub-portfolio</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-3 border-t border-finance-border">
+            <button 
+              (click)="showDeleteConfirmModal.set(false)" 
+              class="px-4 py-2 rounded-xl bg-finance-bg hover:bg-finance-border text-xs text-gray-300 transition">
+              Cancel
+            </button>
+            <button 
+              (click)="confirmDeleteSubPortfolio()" 
+              [disabled]="isDeletingSub()"
+              class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white shadow-md shadow-rose-600/30 transition disabled:opacity-50">
+              {{ isDeletingSub() ? 'Deleting...' : 'Yes, Delete Sub-Portfolio' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  }
+}
+</div>

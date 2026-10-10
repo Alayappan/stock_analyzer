@@ -1,0 +1,171 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+  <div class="bg-finance-card border border-finance-border rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+    
+    <!-- Modal Header -->
+    <div class="px-6 py-4 border-b border-finance-border flex items-center justify-between bg-finance-bg/50">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-finance-border flex items-center justify-center font-mono font-bold text-lg text-emerald-400">
+          {{ ticker.slice(0, 3) }}
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-xl font-extrabold text-white font-mono">{{ ticker }}</h2>
+            @if (tickerDetail()?.quote?.sector) {
+              <span class="text-xs px-2.5 py-0.5 rounded-full bg-finance-border text-finance-muted font-medium">
+                {{ tickerDetail()?.quote?.sector }}
+              </span>
+            }
+          </div>
+          <p class="text-xs text-finance-muted">{{ tickerDetail()?.quote?.name || 'Loading company...' }}</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button 
+          (click)="trade.emit(ticker)"
+          class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow transition">
+          Trade {{ ticker }}
+        </button>
+        <button 
+          (click)="close.emit()" 
+          class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-finance-border transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="p-6 overflow-y-auto space-y-6">
+      
+      @if (isLoading()) {
+        <div class="py-16 text-center text-finance-muted text-sm flex flex-col items-center justify-center gap-3">
+          <svg class="w-8 h-8 text-cyan-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Loading live financial statistics and Yahoo Finance RSS news feed...
+        </div>
+      } @else {
+        @if (tickerDetail(); as detail) {
+
+        <!-- Top Quote Strip -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-finance-bg border border-finance-border rounded-xl p-4">
+          <div>
+            <span class="text-xs text-finance-muted">Current Price</span>
+            <div class="text-2xl font-extrabold text-white font-mono mt-0.5">
+              {{ detail.quote.currency }} {{ detail.quote.current_price | number:'1.2-2' }}
+            </div>
+            <div class="text-xs font-mono font-semibold flex items-center gap-1 mt-0.5"
+              [ngClass]="detail.quote.day_change >= 0 ? 'text-emerald-400' : 'text-rose-400'">
+              <span>{{ detail.quote.day_change >= 0 ? '▲' : '▼' }}</span>
+              <span>{{ detail.quote.day_change | number:'1.2-2' }}</span>
+              <span>({{ detail.quote.day_change_percent | number:'1.2-2' }}%)</span>
+            </div>
+          </div>
+
+          <div>
+            <span class="text-xs text-finance-muted">Previous Close</span>
+            <div class="text-lg font-bold text-gray-200 font-mono mt-0.5">
+              {{ detail.quote.currency }} {{ detail.quote.previous_close | number:'1.2-2' }}
+            </div>
+            <span class="text-[11px] text-finance-muted">Last official market close</span>
+          </div>
+
+          <div>
+            <span class="text-xs text-finance-muted">P/E Ratio (TTM)</span>
+            <div class="text-lg font-bold text-gray-200 font-mono mt-0.5">
+              {{ detail.quote.pe_ratio ? (detail.quote.pe_ratio | number:'1.2-2') : 'N/A' }}
+            </div>
+            <span class="text-[11px] text-finance-muted">Valuation multiple</span>
+          </div>
+
+          <div>
+            <span class="text-xs text-finance-muted">Market Capitalization</span>
+            <div class="text-lg font-bold text-gray-200 font-mono mt-0.5">
+              {{ formatMarketCap(detail.quote.market_cap) }}
+            </div>
+            <span class="text-[11px] text-finance-muted">Total company valuation</span>
+          </div>
+        </div>
+
+        <!-- 52-Week Range Gauge -->
+        <div class="bg-finance-bg/60 border border-finance-border rounded-xl p-4">
+          <div class="flex items-center justify-between text-xs text-finance-muted mb-2 font-mono">
+            <span>52W Low: {{ detail.quote.currency }} {{ detail.quote.fifty_two_week_low | number:'1.2-2' }}</span>
+            <span class="text-white font-semibold">52-Week Price Range</span>
+            <span>52W High: {{ detail.quote.currency }} {{ detail.quote.fifty_two_week_high | number:'1.2-2' }}</span>
+          </div>
+          <div class="w-full bg-finance-border h-2 rounded-full overflow-hidden relative">
+            <div 
+              class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full rounded-full transition-all duration-500"
+              [style.width.%]="getRangeProgress(detail.quote)">
+            </div>
+          </div>
+          <div class="flex justify-between text-[11px] text-finance-muted mt-1 font-mono">
+            <span>{{ detail.quote.industry || 'Equities' }}</span>
+            <span>Yield: {{ (detail.quote.dividend_yield ? (detail.quote.dividend_yield * 100 | number:'1.2-2') : '0.00') }}%</span>
+          </div>
+        </div>
+
+        <!-- News Feed with Sentiment Analysis Section -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+              Live Yahoo Finance News & Sentiment Analysis
+            </h3>
+            <span class="text-xs text-finance-muted">NLP Scoring (-1.0 to +1.0)</span>
+          </div>
+
+          <div class="space-y-3">
+            @for (item of detail.news; track item.title) {
+              <div class="p-3.5 rounded-xl bg-finance-bg border border-finance-border/70 hover:border-finance-border transition">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="space-y-1">
+                    <a [href]="item.link" target="_blank" class="text-xs font-semibold text-gray-100 hover:text-cyan-400 transition line-clamp-2">
+                      {{ item.title }}
+                    </a>
+                    <div class="flex items-center gap-2 text-[11px] text-finance-muted">
+                      <span>{{ item.publisher }}</span>
+                      <span>•</span>
+                      <span>{{ item.published_time }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Sentiment Tag Badge -->
+                  <div class="shrink-0 flex flex-col items-end gap-1">
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase border"
+                      [ngClass]="{
+                        'bg-emerald-500/10 text-emerald-400 border-emerald-500/30': item.sentiment_label === 'BULLISH',
+                        'bg-rose-500/10 text-rose-400 border-rose-500/30': item.sentiment_label === 'BEARISH',
+                        'bg-gray-500/10 text-gray-400 border-gray-500/30': item.sentiment_label === 'NEUTRAL'
+                      }">
+                      {{ item.sentiment_label }}
+                    </span>
+                    <span class="text-[10px] font-mono text-finance-muted">
+                      Score: {{ item.sentiment_score >= 0 ? '+' : '' }}{{ item.sentiment_score | number:'1.2-2' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+        }
+      }
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="px-6 py-3 border-t border-finance-border flex justify-end bg-finance-bg/50">
+      <button 
+        (click)="close.emit()"
+        class="px-4 py-2 rounded-xl bg-finance-card hover:bg-finance-cardHover border border-finance-border text-xs font-medium text-gray-200 transition">
+        Close
+      </button>
+    </div>
+
+  </div>
+</div>

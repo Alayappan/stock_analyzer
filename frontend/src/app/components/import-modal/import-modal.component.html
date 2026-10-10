@@ -1,0 +1,202 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+  <div class="bg-finance-card border border-finance-border rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+    
+    <!-- Modal Header -->
+    <div class="px-6 py-4 border-b border-finance-border flex items-center justify-between bg-finance-bg/50">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-base font-bold text-white">Yahoo Finance Portfolio Ingestion</h2>
+          <p class="text-xs text-finance-muted">Bulk import CSV / Excel files with multi-currency auto-mapping</p>
+        </div>
+      </div>
+      <button (click)="close.emit()" class="text-gray-400 hover:text-white p-1 rounded-lg transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="p-6 overflow-y-auto space-y-5">
+      
+      <!-- Drag & Drop Area -->
+      <div 
+        (dragover)="onDragOver($event)" 
+        (drop)="onDrop($event)"
+        class="border-2 border-dashed border-finance-border hover:border-cyan-500/50 bg-finance-bg/40 rounded-2xl p-6 text-center transition cursor-pointer relative group">
+        <input 
+          type="file" 
+          accept=".csv,.xlsx,.xls" 
+          (change)="onFileSelected($event)" 
+          class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+        
+        <div class="flex flex-col items-center justify-center gap-2 pointer-events-none">
+          <div class="w-12 h-12 rounded-full bg-finance-border/60 group-hover:bg-cyan-500/10 group-hover:text-cyan-400 flex items-center justify-center text-gray-400 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+          </div>
+          <p class="text-sm font-semibold text-white">
+            {{ selectedFile ? selectedFile.name : 'Click or drag & drop Yahoo Finance export file' }}
+          </p>
+          <p class="text-xs text-finance-muted">Supports .csv, .xlsx, and .xls format files</p>
+          @if (selectedFile) {
+            <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 mt-1">
+              {{ (selectedFile.size / 1024).toFixed(1) }} KB Ready
+            </span>
+          }
+        </div>
+      </div>
+
+      <!-- Target Sub-Portfolio Mapping Option -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-semibold text-gray-300">Target Sub-Portfolio Allocation</label>
+        <select 
+          [(ngModel)]="targetSubPortfolioId" 
+          class="w-full bg-finance-bg border border-finance-border rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-cyan-500 transition">
+          <option [ngValue]="null">⚡ Auto-Detect & Group by Region (.NS -> India, .T -> Japan, US default)</option>
+          @for (sp of subPortfolios; track sp.id) {
+            <option [ngValue]="sp.id">Force into: {{ sp.name }} ({{ sp.currency }})</option>
+          }
+        </select>
+        <p class="text-[11px] text-finance-muted">
+          Auto-detection maps tickers according to Yahoo Finance regional suffixes and automatically creates country sub-portfolios if they don't already exist.
+        </p>
+      </div>
+
+      <!-- Deduplication & Overwrite Options -->
+      <div class="space-y-2">
+        <div class="flex items-start gap-3 bg-finance-bg/50 border border-finance-border p-3 rounded-xl">
+          <input 
+            type="checkbox" 
+            id="skipDuplicates" 
+            [(ngModel)]="skipDuplicates"
+            class="mt-0.5 rounded bg-finance-border border-finance-border text-cyan-500 focus:ring-0 cursor-pointer" />
+          <label for="skipDuplicates" class="text-xs text-gray-300 cursor-pointer">
+            <span class="font-bold text-white block">Skip Duplicate Transactions (Recommended)</span>
+            <span class="text-finance-muted text-[11px]">Prevents shares from being doubled if the export file is uploaded again. Automatically matches existing ledger entries by ticker, action, shares, price, and trade date.</span>
+          </label>
+        </div>
+
+        <div class="flex items-start gap-3 bg-finance-bg/50 border border-finance-border p-3 rounded-xl">
+          <input 
+            type="checkbox" 
+            id="replaceExisting" 
+            [(ngModel)]="replaceExisting"
+            class="mt-0.5 rounded bg-finance-border border-finance-border text-amber-500 focus:ring-0 cursor-pointer" />
+          <label for="replaceExisting" class="text-xs text-gray-300 cursor-pointer">
+            <span class="font-bold text-amber-400 block">Replace Existing Ledger Data</span>
+            <span class="text-finance-muted text-[11px]">Wipes previous transactions in the targeted sub-portfolio before importing. Use this to do a completely fresh re-import.</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Auto Fund Cash Wallet Checkbox -->
+      <div class="flex items-start gap-3 bg-finance-bg/50 border border-finance-border p-3 rounded-xl">
+        <input 
+          type="checkbox" 
+          id="autoFund" 
+          [(ngModel)]="autoFundCash"
+          class="mt-0.5 rounded bg-finance-border border-finance-border text-emerald-500 focus:ring-0 cursor-pointer" />
+        <label for="autoFund" class="text-xs text-gray-300 cursor-pointer">
+          <span class="font-bold text-white block">Auto-Fund Regional Cash Wallets</span>
+          <span class="text-finance-muted text-[11px]">Automatically deposit initial capital if the sub-portfolio cash balance is lower than total buy cost, ensuring ledger balance integrity.</span>
+        </label>
+      </div>
+
+      <!-- Download Sample Template Helper -->
+      <div class="flex items-center justify-between text-xs pt-1">
+        <span class="text-finance-muted">Need a sample Yahoo export file?</span>
+        <button 
+          (click)="downloadSampleCsv()"
+          type="button" 
+          class="text-cyan-400 hover:text-cyan-300 font-semibold underline transition">
+          Download Sample CSV
+        </button>
+      </div>
+
+      <!-- Error Banner -->
+      @if (errorMessage()) {
+        <div class="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs flex items-center gap-2">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <!-- Result Success Summary Banner -->
+      @if (importResult(); as res) {
+        <div class="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs space-y-2">
+          <div class="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Ingestion Complete!
+          </div>
+          <div class="grid grid-cols-4 gap-2 text-center pt-1 font-mono">
+            <div class="bg-finance-bg/80 p-2 rounded-lg border border-finance-border">
+              <div class="text-base font-extrabold text-white">{{ res.transactions_imported }}</div>
+              <div class="text-[10px] text-finance-muted">Imported</div>
+            </div>
+            <div class="bg-finance-bg/80 p-2 rounded-lg border border-finance-border">
+              <div class="text-base font-extrabold text-cyan-400">{{ res.duplicates_skipped || 0 }}</div>
+              <div class="text-[10px] text-finance-muted">Dupes Skipped</div>
+            </div>
+            <div class="bg-finance-bg/80 p-2 rounded-lg border border-finance-border">
+              <div class="text-base font-extrabold text-white">{{ res.sub_portfolios_affected }}</div>
+              <div class="text-[10px] text-finance-muted">Sub-Portfolios</div>
+            </div>
+            <div class="bg-finance-bg/80 p-2 rounded-lg border border-finance-border">
+              <div class="text-base font-extrabold text-white">{{ res.rows_skipped }}</div>
+              <div class="text-[10px] text-finance-muted">Errors/Empty</div>
+            </div>
+          </div>
+          @if (res.created_subportfolios && res.created_subportfolios.length > 0) {
+            <p class="text-[11px] text-emerald-300">
+              Created new sub-portfolios: {{ res.created_subportfolios.join(', ') }}
+            </p>
+          }
+        </div>
+      }
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="px-6 py-4 border-t border-finance-border flex items-center justify-between bg-finance-bg/50">
+      <button 
+        (click)="close.emit()"
+        class="px-4 py-2 rounded-xl bg-finance-card hover:bg-finance-cardHover border border-finance-border text-xs font-medium text-gray-200 transition">
+        Cancel
+      </button>
+
+      @if (importResult()) {
+        <button 
+          (click)="close.emit()"
+          class="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-xs font-bold shadow-md shadow-emerald-500/20 transition active:scale-95 flex items-center gap-2">
+          <span>Done (Close)</span>
+        </button>
+      } @else {
+        <button 
+          (click)="submitImport()"
+          [disabled]="!selectedFile || isUploading()"
+          class="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white text-xs font-bold shadow-md shadow-cyan-500/20 transition active:scale-95 disabled:opacity-50 flex items-center gap-2">
+          @if (isUploading()) {
+            <svg class="w-4 h-4 animate-spin text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Processing Data...</span>
+          } @else {
+            <span>Import & Sync Ledger</span>
+          }
+        </button>
+      }
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,9 @@
+Symbol,Trade Date,Purchase Price,Quantity,Commission,Comment
+AAPL,2024-01-15,185.5000,25,0.0000,US Tech core holding
+MSFT,2024-02-10,405.2000,15,0.0000,AI & Cloud leader
+NVDA,2024-03-01,820.0000,10,0.0000,Semiconductor GPU play
+RELIANCE.NS,2024-01-20,2750.0000,50,20.0000,India Energy & Retail giant
+TCS.NS,2024-02-15,3950.0000,30,20.0000,India IT services
+INFY.NS,2024-03-10,1580.0000,75,15.0000,India Digital Transformation
+7203.T,2024-01-25,2900.0000,200,500.0000,Toyota Motor Corporation
+6758.T,2024-02-28,12800.0000,50,500.0000,Sony Group Japan
